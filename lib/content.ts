@@ -5,6 +5,10 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/admin";
 
 const CONTENT_KEY = "main";
 
+function usesSupabaseBackend(): boolean {
+  return process.env.DATA_BACKEND?.toLowerCase() === "supabase";
+}
+
 function mergeContent(base: SiteContent, incoming: Partial<SiteContent>): SiteContent {
   return {
     ...base,
@@ -20,6 +24,8 @@ function mergeContent(base: SiteContent, incoming: Partial<SiteContent>): SiteCo
 }
 
 export async function getSiteContent(): Promise<SiteContent> {
+  if (!usesSupabaseBackend()) return defaultContent;
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return defaultContent;
 
@@ -42,6 +48,10 @@ export async function getSiteContent(): Promise<SiteContent> {
 }
 
 export async function saveSiteContent(content: SiteContent): Promise<void> {
+  if (!usesSupabaseBackend()) {
+    throw new Error("Sisältöä hallitaan tällä hetkellä GitHubin versionhallinnassa.");
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) throw new Error("Supabasea ei ole konfiguroitu.");
 
@@ -53,5 +63,5 @@ export async function saveSiteContent(content: SiteContent): Promise<void> {
 }
 
 export function isContentStorageConfigured(): boolean {
-  return isSupabaseConfigured();
+  return usesSupabaseBackend() && isSupabaseConfigured();
 }
