@@ -13,7 +13,18 @@ export type ProjectReference = {
   sortOrder: number;
 };
 
+// Väliaikainen GitHub-pohjainen referenssilista. Lisää vain vahvistetut julkaisut.
+const staticReferences: ProjectReference[] = [];
+
+function usesSupabaseBackend(): boolean {
+  return process.env.DATA_BACKEND?.toLowerCase() === "supabase";
+}
+
 export async function getPublishedReferences(): Promise<ProjectReference[]> {
+  if (!usesSupabaseBackend()) {
+    return [...staticReferences].sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return [];
 
