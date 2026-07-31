@@ -47,6 +47,17 @@ function buildDetails(body: Record<string, unknown>): Record<string, string> {
   );
 }
 
+function buildEmailLines(body: Record<string, unknown>): string[] {
+  const ignoredKeys = new Set(["subject", "website", "startedAt"]);
+
+  return Object.entries(body)
+    .filter(([key]) => !ignoredKeys.has(key))
+    .map(([key, value]) => {
+      const cleaned = clean(value, key === "message" ? 3000 : 300);
+      return `${labels[key] || key}: ${cleaned || "-"}`;
+    });
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
@@ -75,42 +86,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Lomake lähetettiin liian nopeasti." }, { status: 429 });
     }
 
-    const supabase = getSupabaseAdmin();
-    if (!supabase) return NextResponse.json({ message: "Lomakepalvelua ei ole vielä konfiguroitu." }, { status: 503 });
+    if (process.env.DATA_BACKEND?.toLowerCase() === "supabase") {
+      const supabase = getSupabaseAdmin();
+      if (!supabase) {
+        return NextResponse.json({ message: "Tietokantatallennusta ei ole konfiguroitu." }, { status: 503 });
+      }
 
-    const details = buildDetails(body);
-    const { error: databaseError } = await supabase.from("jkp_form_submissions").insert({
-      kind,
-      name,
-      email,
-      phone,
-      company: company || null,
-      business_id: businessId || null,
-      property: property || null,
-      message,
-      details,
-      consent: true,
-      source: "website",
-    });
+      const { error: databaseError } = await supabase.from("jkp_form_submissions").insert({
+        kind,
+        name,
+        email,
+        phone,
+        company: company || null,
+        business_id: businessId || null,
+        property: property || null,
+        message,
+        details: buildDetails(body),
+        consent: true,
+        source: "website",
+      });
 
-    if (databaseError) {
-      console.error("JKP form persistence failed", databaseError.message);
-      return NextResponse.json({ message: "Tietojen tallennus epäonnistui. Yritä myöhemmin uudelleen." }, { status: 502 });
+      if (databaseError) {
+        console.error("JKP form persistence failed", databaseError.message);
+        return NextResponse.json({ message: "Tietojen tallennus epäonnistui. Yritä myöhemmin uudelleen." }, { status: 502 });
+      }
     }
 
     const apiKey = process.env.RESEND_API_KEY;
     const from = process.env.CONTACT_FROM_EMAIL;
-    const to = process.env.CONTACT_TO_EMAIL || "jari.koskela@jkpgroup.fi";
+    const to = (process.env.CONTACT_TO_EMAIL || "jari.koskela@jkpgroup.fi").trim();
+    const emailSubject = `${subject}: ${name}`;
+    const emailBody = buildEmailLines(body).join("\n");
 
     if (apiKey && from) {
-      const ignoredKeys = new Set(["subject", "website", "startedAt"]);
-      const lines = Object.entries(body)
-        .filter(([key]) => !ignoredKeys.has(key))
-        .map(([key, value]) => {
-          const cleaned = clean(value, key === "message" ? 3000 : 300);
-          return `${labels[key] || key}: ${cleaned || "-"}`;
-        });
-
       const emailResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -118,15 +126,25 @@ export async function POST(request: Request) {
           from,
           to: [to],
           reply_to: email,
-          subject: `${subject}: ${name}`,
-          text: lines.join("\n"),
+          subject: emailSubject,
+          text: emailBody,
         }),
       });
 
-      if (!emailResponse.ok) console.error("JKP Resend notification failed", await emailResponse.text());
+      if (emailResponse.ok) {
+        return NextResponse.json({ message: "Tiedot vastaanotettu.", delivery: "resend" });
+      }
+
+      console.error("JKP Resend notification failed", await emailResponse.text());
     }
 
-    return NextResponse.json({ message: "Tiedot vastaanotettu." });
+    const mailtoUrl = `mailto:${to}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+
+    return NextResponse.json({
+      message: "Sähköpostiohjelma avataan. Lähetä viesti sieltä loppuun.",
+      delivery: "mailto",
+      mailtoUrl,
+    });
   } catch {
     return NextResponse.json({ message: "Virheellinen lomakepyyntö." }, { status: 400 });
   }
