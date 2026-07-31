@@ -24,6 +24,13 @@ export type RentalProperty = {
   sortOrder: number;
 };
 
+// Väliaikainen GitHub-pohjainen kohdelista. Lisää vain asiakkaan vahvistamat kohteet.
+const staticRentals: RentalProperty[] = [];
+
+function usesSupabaseBackend(): boolean {
+  return process.env.DATA_BACKEND?.toLowerCase() === "supabase";
+}
+
 function normalizeStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
@@ -60,6 +67,10 @@ function isPubliclyVisible(property: RentalProperty): boolean {
 }
 
 export async function getPublishedRentals(): Promise<RentalProperty[]> {
+  if (!usesSupabaseBackend()) {
+    return staticRentals.filter(isPubliclyVisible).sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return [];
 
@@ -80,6 +91,10 @@ export async function getPublishedRentals(): Promise<RentalProperty[]> {
 }
 
 export async function getRentalBySlug(slug: string): Promise<RentalProperty | null> {
+  if (!usesSupabaseBackend()) {
+    return staticRentals.find((property) => property.slug === slug && isPubliclyVisible(property)) || null;
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
 
