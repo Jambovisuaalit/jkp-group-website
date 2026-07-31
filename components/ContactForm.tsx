@@ -2,6 +2,12 @@
 
 import { FormEvent, useRef, useState } from "react";
 
+type ContactResponse = {
+  message?: string;
+  delivery?: "resend" | "mailto";
+  mailtoUrl?: string;
+};
+
 export function ContactForm({ subject = "Yhteydenotto verkkosivulta" }: { subject?: string }) {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -21,12 +27,20 @@ export function ContactForm({ subject = "Yhteydenotto verkkosivulta" }: { subjec
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, subject, startedAt: startedAt.current }),
       });
-      const payload = (await response.json()) as { message?: string };
+      const payload = (await response.json()) as ContactResponse;
       if (!response.ok) throw new Error(payload.message || "Viestin lähetys epäonnistui.");
+
       form.reset();
       startedAt.current = Date.now();
       setStatus("success");
-      setMessage("Kiitos. Viesti on vastaanotettu.");
+
+      if (payload.delivery === "mailto" && payload.mailtoUrl) {
+        setMessage(payload.message || "Sähköpostiohjelma avataan.");
+        window.location.assign(payload.mailtoUrl);
+        return;
+      }
+
+      setMessage(payload.message || "Kiitos. Viesti on vastaanotettu.");
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Viestin lähetys epäonnistui.");
