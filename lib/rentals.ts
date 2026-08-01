@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin, isSupabaseBackendEnabled } from "@/lib/supabase/admin";
 
 export type RentalProperty = {
   id: string;
@@ -24,12 +24,7 @@ export type RentalProperty = {
   sortOrder: number;
 };
 
-// Väliaikainen GitHub-pohjainen kohdelista. Lisää vain asiakkaan vahvistamat kohteet.
 const staticRentals: RentalProperty[] = [];
-
-function usesSupabaseBackend(): boolean {
-  return process.env.DATA_BACKEND?.toLowerCase() === "supabase";
-}
 
 function normalizeStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -67,7 +62,7 @@ function isPubliclyVisible(property: RentalProperty): boolean {
 }
 
 export async function getPublishedRentals(): Promise<RentalProperty[]> {
-  if (!usesSupabaseBackend()) {
+  if (!isSupabaseBackendEnabled()) {
     return staticRentals.filter(isPubliclyVisible).sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
@@ -92,7 +87,7 @@ export async function getPublishedRentals(): Promise<RentalProperty[]> {
 }
 
 export async function getRentalBySlug(slug: string): Promise<RentalProperty | null> {
-  if (!usesSupabaseBackend()) {
+  if (!isSupabaseBackendEnabled()) {
     return staticRentals.find((property) => property.slug === slug && isPubliclyVisible(property)) || null;
   }
 
