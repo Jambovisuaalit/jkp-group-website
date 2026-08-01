@@ -1,28 +1,20 @@
 import { createClient } from "@supabase/supabase-js";
 
-const required = [
-  "SUPABASE_URL",
-  "SUPABASE_SERVICE_ROLE_KEY",
-  "ADMIN_EMAIL",
-  "NEXT_PUBLIC_SITE_URL",
-];
+const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const secretKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
 
-for (const name of required) {
-  if (!process.env[name]) {
-    throw new Error(`Puuttuva ympäristömuuttuja: ${name}`);
-  }
-}
+if (!url) throw new Error("Puuttuva ympäristömuuttuja: SUPABASE_URL");
+if (!secretKey) throw new Error("Puuttuva ympäristömuuttuja: SUPABASE_SECRET_KEY");
+if (!email) throw new Error("Puuttuva ympäristömuuttuja: ADMIN_EMAIL");
+if (!siteUrl) throw new Error("Puuttuva ympäristömuuttuja: NEXT_PUBLIC_SITE_URL");
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: { autoRefreshToken: false, persistSession: false },
-  },
-);
+const supabase = createClient(url, secretKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
 
-const email = process.env.ADMIN_EMAIL.trim().toLowerCase();
-const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "")}/admin/reset-password`;
+const redirectTo = `${siteUrl}/admin/reset-password`;
 
 let userId = null;
 let invited = false;
