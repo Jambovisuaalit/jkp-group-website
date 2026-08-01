@@ -1,20 +1,18 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
-import { getAdminUser } from "@/lib/auth";
+import { getAdminContext } from "@/lib/auth";
 import {
   normalizeReference,
   publicationColumns,
   stringArray,
 } from "@/lib/admin-records";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { AdminReference, PublicationState } from "@/types/admin";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function PUT(request: Request, context: RouteContext) {
-  if (!(await getAdminUser())) return NextResponse.json({ message: "Ei käyttöoikeutta." }, { status: 401 });
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return NextResponse.json({ message: "Supabasea ei ole konfiguroitu." }, { status: 503 });
+  const admin = await getAdminContext();
+  if (!admin) return NextResponse.json({ message: "Ei käyttöoikeutta." }, { status: 401 });
 
   const { id } = await context.params;
   const body = (await request.json().catch(() => ({}))) as Partial<AdminReference>;
@@ -44,7 +42,7 @@ export async function PUT(request: Request, context: RouteContext) {
     ...publicationColumns(state),
   };
 
-  const { data, error } = await supabase.from("jkp_references").update(payload).eq("id", id).select("*").single();
+  const { data, error } = await admin.client.from("jkp_references").update(payload).eq("id", id).select("*").single();
   if (error) return NextResponse.json({ message: "Referenssin tallennus epäonnistui." }, { status: 500 });
 
   revalidatePath("/referenssit");
@@ -52,12 +50,11 @@ export async function PUT(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
-  if (!(await getAdminUser())) return NextResponse.json({ message: "Ei käyttöoikeutta." }, { status: 401 });
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return NextResponse.json({ message: "Supabasea ei ole konfiguroitu." }, { status: 503 });
+  const admin = await getAdminContext();
+  if (!admin) return NextResponse.json({ message: "Ei käyttöoikeutta." }, { status: 401 });
 
   const { id } = await context.params;
-  const { error } = await supabase.from("jkp_references").delete().eq("id", id);
+  const { error } = await admin.client.from("jkp_references").delete().eq("id", id);
   if (error) return NextResponse.json({ message: "Referenssin poistaminen epäonnistui." }, { status: 500 });
 
   revalidatePath("/referenssit");
