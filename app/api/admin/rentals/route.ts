@@ -1,0 +1,101 @@
+import { revalidatePath } from "next/cache";
+import { NextResponse } from "next/server";
+import { getAdminUser } from "@/lib/auth";
+import {
+  normalizeRental,
+  publicationColumns,
+  slugify,
+  stringArray,
+} from "@/lib/admin-records";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import type { AdminRental, PublicationState } from "@/types/admin";
+
+export async function GET() {
+  if (!(await getAdminUser())) {
+    return NextResponse.json({ message: "Ei käyttöoikeutta." }, { status: 401 });
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json({ message: "Supabasea ei ole konfiguroitu." }, { status: 503 });
+  }
+
+  const { data, error } = await supabase
+    .from("jkp_rental_properties")
+    .select("*")
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    return NextResponse.json({ message: "Vuokrakohteiden lataus epäonnistui." }, { status: 500 });
+  }
+
+  return NextResponse.json({ items: (data || []).map((row) => normalizeRental(row)) });
+}
+
+export async function POST(request: Request) {
+  if (!(await getAdminUser())) {
+    return NextResponse.json({ message: "Ei käyttöoikeutta." }, { status: 401 });
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json({ message: "Supabasea ei ole konfiguroitu." }, { status: 503 });
+  }
+
+  const body = (await request.json().catch(() => ({}))) as Partial<AdminRental>;
+  const title = body.title?.trim() || "";
+  const slug = slugify(body.slug?.trim() || title);
+  if (!title || !slug) {
+    return NextResponse.json({ message: "Kohteen nimi on pakollinen." }, { status: 400 });
+  }
+
+  const state: PublicationState =
+    body.publicationState === "published" || body.publicationState === "hidden"
+      ? body.publicationState
+      : "draft";
+
+  const payload = {
+    slug,
+    title,
+    type:
+      body.type === "commercial" || body.type === "residential"
+        ? body.type
+        : "holiday",
+    status:
+      body.availability === "available" || body.availability === "occupied"
+        ? body.availability
+        : "always_active",
+    city: body.city?.trim() || "",
+    address: body.address?.trim() || "",
+    summary: body.summary?.trim() || "",
+    description: body.description?.trim() || "",
+    price: body.price?.trim() || "",
+    area: body.area?.trim() || "",
+    rooms: body.rooms?.trim() || "",
+    mainImage: body.mainImage?.trim() || "",
+    gallery: stringArray(body.gallery),
+    details: stringArray(body.details),
+    highlights: stringArray(body.highlights),
+    contactName: body.contactName?.trim() || "JKP Group Oy",
+    sortOrder: Number.isFinite(body.sortOrder) ? Number(body.sortOrder) : 100,
+    ...publicationColumns(state),
+  };
+
+  const { data, error } = await supabase
+    .from("jkp_rental_properties")
+    .insert(payload)
+    .select("*")
+    .single();
+
+  if (error) {
+    const duplicate = error.code === "23505";
+    return NextResponse.json(
+      { message: duplicate ? "Samalla verkko-osoitteella on jo kohde." : "Kohteen tallennus epäonnistui." },
+      { status: duplicate ? 409 : 500 },
+    );
+  }
+
+  revalidatePath("/vuokraus");
+  revalidatePath(`/vuokraus/${slug}`);
+  return NextResponse.json({ item: normalizeRental(data) }, { status: 201 });
+}
