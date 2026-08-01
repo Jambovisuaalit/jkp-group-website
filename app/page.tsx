@@ -32,10 +32,10 @@ export default async function HomePage() {
                   Tutustu palveluihin <span aria-hidden="true">→</span>
                 </Link>
               </div>
-              <div className="proof-row" aria-label="Yrityksen perustiedot">
+              <div className="proof-row" aria-label="JKP Groupin luottamusluvut">
                 <div><strong>1993</strong><span>Perustettu</span></div>
-                <div><strong>2</strong><span>Liiketoiminta-aluetta</span></div>
-                <div><strong>1</strong><span>Suora vastuuhenkilö</span></div>
+                <div><strong>84,2 %</strong><span>Omavaraisuus 2024</span></div>
+                <div><strong>40,2 %</strong><span>Liikevoitto 2024</span></div>
               </div>
             </div>
 
@@ -77,7 +77,7 @@ export default async function HomePage() {
             <div className="about-panel">
               <span>33</span>
               <strong>vuotta yritystoimintaa</strong>
-              <p>Vakiintunut toimija, selkeä vastuu ja käytännönläheinen päätöksenteko.</p>
+              <p>Suomen Vahvimmat Platina -sertifikaatti. Vuoden 2024 omavaraisuusaste 84,2 %.</p>
             </div>
             <div className="about-copy">
               <p className="eyebrow">JKP Group Oy</p>
@@ -110,6 +110,7 @@ export default async function HomePage() {
               <h2>{content.contact.title}</h2>
               <p>{content.contact.body}</p>
               <a className="contact-email" href={`mailto:${content.company.email}`}>{content.company.email}</a>
+              {content.company.phone ? <a className="contact-email" href={`tel:${content.company.phone.replace(/\s/g, "")}`}>{content.company.phone}</a> : null}
             </div>
             <ContactForm />
           </div>
