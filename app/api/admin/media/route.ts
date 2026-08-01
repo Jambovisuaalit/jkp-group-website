@@ -1,17 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { isAdminAuthenticated } from "@/lib/auth";
+import sharp from "sharp";
+import { getAdminUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
-const MAX_FILE_SIZE = 6_000_000;
-const ALLOWED_TYPES = new Map([
-  ["image/jpeg", "jpg"],
-  ["image/png", "png"],
-  ["image/webp", "webp"],
-]);
+const MAX_FILE_SIZE = 12_000_000;
+const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export async function POST(request: Request) {
-  if (!(await isAdminAuthenticated())) {
+  if (!(await getAdminUser())) {
     return NextResponse.json({ message: "Ei käyttöoikeutta." }, { status: 401 });
   }
 
@@ -27,21 +24,26 @@ export async function POST(request: Request) {
     if (!(file instanceof File)) {
       return NextResponse.json({ message: "Valitse kuvatiedosto." }, { status: 400 });
     }
-
-    const extension = ALLOWED_TYPES.get(file.type);
-    if (!extension) {
+    if (!ALLOWED_TYPES.has(file.type)) {
       return NextResponse.json({ message: "Sallittuja tiedostomuotoja ovat JPEG, PNG ja WebP." }, { status: 400 });
     }
     if (file.size <= 0 || file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ message: "Kuvan enimmäiskoko on 6 Mt." }, { status: 400 });
+      return NextResponse.json({ message: "Alkuperäisen kuvan enimmäiskoko on 12 Mt." }, { status: 400 });
     }
 
-    const bucket = process.env.SUPABASE_STORAGE_BUCKET || "jkp-media";
-    const path = `website/${new Date().toISOString().slice(0, 10)}/${randomUUID()}.${extension}`;
-    const bytes = new Uint8Array(await file.arrayBuffer());
+    const source = Buffer.from(await file.arrayBuffer());
+    const optimized = await sharp(source)
+      .rotate()
+      .resize({ width: 2000, height: 2000, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 84, effort: 5 })
+      .toBuffer();
 
-    const { data, error } = await supabase.storage.from(bucket).upload(path, bytes, {
-      contentType: file.type,
+    const bucket = process.env.SUPABASE_STORAGE_BUCKET || "jkp-media";
+    const folder = String(formData.get("folder") || "website").replace(/[^a-z0-9/-]/gi, "");
+    const path = `${folder || "website"}/${new Date().toISOString().slice(0, 10)}/${randomUUID()}.webp`;
+
+    const { data, error } = await supabase.storage.from(bucket).upload(path, optimized, {
+      contentType: "image/webp",
       cacheControl: "31536000",
       upsert: false,
     });
@@ -52,8 +54,14 @@ export async function POST(request: Request) {
     }
 
     const { data: publicUrl } = supabase.storage.from(bucket).getPublicUrl(data.path);
-    return NextResponse.json({ path: data.path, url: publicUrl.publicUrl });
-  } catch {
+    return NextResponse.json({
+      path: data.path,
+      url: publicUrl.publicUrl,
+      bytes: optimized.byteLength,
+      format: "webp",
+    });
+  } catch (error) {
+    console.error("JKP image processing failed", error);
     return NextResponse.json({ message: "Kuvan käsittely epäonnistui." }, { status: 400 });
   }
 }
