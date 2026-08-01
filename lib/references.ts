@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin, isSupabaseBackendEnabled } from "@/lib/supabase/admin";
 
 export type ProjectReference = {
   id: string;
@@ -13,15 +13,10 @@ export type ProjectReference = {
   sortOrder: number;
 };
 
-// Väliaikainen GitHub-pohjainen referenssilista. Lisää vain vahvistetut julkaisut.
 const staticReferences: ProjectReference[] = [];
 
-function usesSupabaseBackend(): boolean {
-  return process.env.DATA_BACKEND?.toLowerCase() === "supabase";
-}
-
 export async function getPublishedReferences(): Promise<ProjectReference[]> {
-  if (!usesSupabaseBackend()) {
+  if (!isSupabaseBackendEnabled()) {
     return [...staticReferences].sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
