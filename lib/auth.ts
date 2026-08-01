@@ -2,7 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
-import { getSupabaseAdmin, getSupabasePublicConfig } from "@/lib/supabase/admin";
+import { getSupabasePublicConfig } from "@/lib/supabase/admin";
 
 const ACCESS_COOKIE = "jkp_admin_access";
 const REFRESH_COOKIE = "jkp_admin_refresh";
@@ -29,7 +29,7 @@ function cookieOptions(maxAge: number) {
   return {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
+    sameSite: "strict" as const,
     path: "/",
     maxAge,
   };
@@ -47,14 +47,8 @@ async function clearSession() {
   cookieStore.set(REFRESH_COOKIE, "", cookieOptions(0));
 }
 
-async function isAllowedAdmin(user: User): Promise<boolean> {
-  const configuredEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  if (configuredEmail && user.email?.toLowerCase() === configuredEmail) return true;
-
-  const admin = getSupabaseAdmin();
-  if (!admin) return false;
-
-  const { data, error } = await admin
+async function isAllowedAdmin(user: User, client: SupabaseClient): Promise<boolean> {
+  const { data, error } = await client
     .from("jkp_admin_users")
     .select("active")
     .eq("user_id", user.id)
@@ -78,7 +72,7 @@ export async function signInAdmin(email: string, password: string) {
     return { user: null, message: "Sähköposti tai salasana on virheellinen." };
   }
 
-  if (!(await isAllowedAdmin(data.user))) {
+  if (!(await isAllowedAdmin(data.user, client))) {
     await client.auth.signOut();
     return { user: null, message: "Käyttäjällä ei ole JKP Hallinnan käyttöoikeutta." };
   }
@@ -87,7 +81,7 @@ export async function signInAdmin(email: string, password: string) {
   return { user: data.user, message: "" };
 }
 
-export async function getAdminUser(): Promise<User | null> {
+export async function getAdminContext(): Promise<{ user: User; client: SupabaseClient } | null> {
   const client = createAuthClient();
   if (!client) return null;
 
@@ -106,7 +100,7 @@ export async function getAdminUser(): Promise<User | null> {
     return null;
   }
 
-  if (!(await isAllowedAdmin(data.user))) {
+  if (!(await isAllowedAdmin(data.user, client))) {
     await clearSession();
     return null;
   }
@@ -118,11 +112,15 @@ export async function getAdminUser(): Promise<User | null> {
     await saveSession(data.session.access_token, data.session.refresh_token);
   }
 
-  return data.user;
+  return { user: data.user, client };
+}
+
+export async function getAdminUser(): Promise<User | null> {
+  return (await getAdminContext())?.user || null;
 }
 
 export async function isAdminAuthenticated(): Promise<boolean> {
-  return Boolean(await getAdminUser());
+  return Boolean(await getAdminContext());
 }
 
 export async function signOutAdmin(): Promise<void> {
@@ -140,7 +138,8 @@ export async function signOutAdmin(): Promise<void> {
 }
 
 export async function changeAdminPassword(currentPassword: string, newPassword: string) {
-  const user = await getAdminUser();
+  const context = await getAdminContext();
+  const user = context?.user;
   if (!user?.email) return { ok: false, message: "Istunto on vanhentunut." };
   if (newPassword.length < 12) {
     return { ok: false, message: "Uuden salasanan on oltava vähintään 12 merkkiä." };
@@ -172,10 +171,8 @@ export async function changeAdminPassword(currentPassword: string, newPassword: 
 }
 
 export async function requestAdminPasswordReset(email: string, redirectTo: string) {
-  const configuredEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const normalizedEmail = email.trim().toLowerCase();
-
-  if (!configuredEmail || normalizedEmail !== configuredEmail) {
+  if (!normalizedEmail) {
     return { ok: true, message: "Jos käyttäjätili löytyy, palautuslinkki lähetetään sähköpostiin." };
   }
 
@@ -213,7 +210,7 @@ export async function completeAdminPasswordRecovery(
     return { ok: false, message: "Palautuslinkki on virheellinen tai vanhentunut." };
   }
 
-  if (!(await isAllowedAdmin(sessionData.user))) {
+  if (!(await isAllowedAdmin(sessionData.user, client))) {
     await client.auth.signOut();
     return { ok: false, message: "Käyttäjällä ei ole JKP Hallinnan käyttöoikeutta." };
   }
