@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "bootstrap:admin": "node scripts/bootstrap-jari-admin.mjs"
+    "bootstrap:admin": "node scripts/bootstrap-admin.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.9",
