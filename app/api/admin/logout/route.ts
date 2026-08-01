@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { ADMIN_COOKIE } from "@/lib/auth";
+import { signOutAdmin } from "@/lib/auth";
 
 export async function POST() {
-  const response = NextResponse.json({ ok: true });
-  response.cookies.set(ADMIN_COOKIE, "", { httpOnly: true, expires: new Date(0), path: "/" });
-  return response;
+  await signOutAdmin();
+  return NextResponse.json({ ok: true });
 }
