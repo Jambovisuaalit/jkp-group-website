@@ -78,6 +78,7 @@ export async function getPublishedRentals(): Promise<RentalProperty[]> {
     .from("jkp_rental_properties")
     .select("*")
     .eq("published", true)
+    .eq("hidden", false)
     .order("sortOrder", { ascending: true });
 
   if (error) {
@@ -102,6 +103,7 @@ export async function getRentalBySlug(slug: string): Promise<RentalProperty | nu
     .from("jkp_rental_properties")
     .select("*")
     .eq("slug", slug)
+    .eq("hidden", false)
     .maybeSingle();
 
   if (error || !data) {
