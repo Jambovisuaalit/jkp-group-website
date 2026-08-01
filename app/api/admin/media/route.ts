@@ -1,20 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import sharp from "sharp";
-import { getAdminUser } from "@/lib/auth";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getAdminContext } from "@/lib/auth";
 
 const MAX_FILE_SIZE = 12_000_000;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export async function POST(request: Request) {
-  if (!(await getAdminUser())) {
+  const admin = await getAdminContext();
+  if (!admin) {
     return NextResponse.json({ message: "Ei käyttöoikeutta." }, { status: 401 });
-  }
-
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json({ message: "Supabasea ei ole konfiguroitu." }, { status: 503 });
   }
 
   try {
@@ -42,7 +37,7 @@ export async function POST(request: Request) {
     const folder = String(formData.get("folder") || "website").replace(/[^a-z0-9/-]/gi, "");
     const path = `${folder || "website"}/${new Date().toISOString().slice(0, 10)}/${randomUUID()}.webp`;
 
-    const { data, error } = await supabase.storage.from(bucket).upload(path, optimized, {
+    const { data, error } = await admin.client.storage.from(bucket).upload(path, optimized, {
       contentType: "image/webp",
       cacheControl: "31536000",
       upsert: false,
