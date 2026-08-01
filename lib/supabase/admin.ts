@@ -8,17 +8,14 @@ const DEFAULT_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Rzp4OcoggkrfTRzzvuT5QA_
 let adminClient: SupabaseClient | null | undefined;
 
 export function getSupabasePublicConfig() {
-  const url =
-    process.env.SUPABASE_URL ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    DEFAULT_SUPABASE_URL;
+  // JKP admin authentication must never inherit a generic Supabase Marketplace
+  // integration from another Vercel project. The public URL and publishable key
+  // are safe to ship and bind Auth explicitly to JKP's production project.
+  const url = process.env.JKP_SUPABASE_URL || DEFAULT_SUPABASE_URL;
   const publishableKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.SUPABASE_PUBLISHABLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_JKP_SUPABASE_PUBLISHABLE_KEY ||
     DEFAULT_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!url || !publishableKey) return null;
   return { url, publishableKey };
 }
 
