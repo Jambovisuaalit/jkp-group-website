@@ -1,20 +1,15 @@
 import { NextResponse } from "next/server";
-import { getAdminUser } from "@/lib/auth";
+import { getAdminContext } from "@/lib/auth";
 import { normalizeSubmission } from "@/lib/admin-records";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { SubmissionStatus } from "@/types/admin";
 
 type RouteContext = { params: Promise<{ id: string }> };
 const allowed: SubmissionStatus[] = ["new", "contacted", "processed", "archived", "spam"];
 
 export async function PUT(request: Request, context: RouteContext) {
-  if (!(await getAdminUser())) {
+  const admin = await getAdminContext();
+  if (!admin) {
     return NextResponse.json({ message: "Ei käyttöoikeutta." }, { status: 401 });
-  }
-
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json({ message: "Supabasea ei ole konfiguroitu." }, { status: 503 });
   }
 
   const { id } = await context.params;
@@ -23,7 +18,7 @@ export async function PUT(request: Request, context: RouteContext) {
     return NextResponse.json({ message: "Virheellinen käsittelytila." }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await admin.client
     .from("jkp_form_submissions")
     .update({ status: body.status })
     .eq("id", id)
