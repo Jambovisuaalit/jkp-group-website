@@ -32,6 +32,8 @@ export async function getPublishedReferences(): Promise<ProjectReference[]> {
     .from("jkp_references")
     .select("id,title,category,location,summary,description,imageUrl,sortOrder")
     .eq("published", true)
+    .eq("hidden", false)
+    .eq("permission_confirmed", true)
     .order("sortOrder", { ascending: true });
 
   if (error) {
