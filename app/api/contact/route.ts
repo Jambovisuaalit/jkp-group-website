@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin, isSupabaseBackendEnabled } from "@/lib/supabase/admin";
 
 function clean(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Lomake lähetettiin liian nopeasti." }, { status: 429 });
     }
 
-    if (process.env.DATA_BACKEND?.toLowerCase() === "supabase") {
+    if (isSupabaseBackendEnabled()) {
       const supabase = getSupabaseAdmin();
       if (!supabase) {
         return NextResponse.json({ message: "Tietokantatallennusta ei ole konfiguroitu." }, { status: 503 });
