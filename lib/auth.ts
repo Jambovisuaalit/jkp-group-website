@@ -2,25 +2,18 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin, getSupabasePublicConfig } from "@/lib/supabase/admin";
 
 const ACCESS_COOKIE = "jkp_admin_access";
 const REFRESH_COOKIE = "jkp_admin_refresh";
 const ACCESS_MAX_AGE = 60 * 60;
 const REFRESH_MAX_AGE = 60 * 60 * 24 * 30;
 
-function getPublicConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) return null;
-  return { url, anonKey };
-}
-
 function createAuthClient(): SupabaseClient | null {
-  const config = getPublicConfig();
+  const config = getSupabasePublicConfig();
   if (!config) return null;
 
-  return createClient(config.url, config.anonKey, {
+  return createClient(config.url, config.publishableKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
@@ -182,7 +175,6 @@ export async function requestAdminPasswordReset(email: string, redirectTo: strin
   const configuredEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const normalizedEmail = email.trim().toLowerCase();
 
-  // Vastataan aina samalla tavalla, jotta käyttäjätilin olemassaoloa ei paljasteta.
   if (!configuredEmail || normalizedEmail !== configuredEmail) {
     return { ok: true, message: "Jos käyttäjätili löytyy, palautuslinkki lähetetään sähköpostiin." };
   }
