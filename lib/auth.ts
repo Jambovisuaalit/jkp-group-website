@@ -177,3 +177,64 @@ export async function changeAdminPassword(currentPassword: string, newPassword: 
 
   return { ok: true, message: "Salasana vaihdettiin." };
 }
+
+export async function requestAdminPasswordReset(email: string, redirectTo: string) {
+  const configuredEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // Vastataan aina samalla tavalla, jotta käyttäjätilin olemassaoloa ei paljasteta.
+  if (!configuredEmail || normalizedEmail !== configuredEmail) {
+    return { ok: true, message: "Jos käyttäjätili löytyy, palautuslinkki lähetetään sähköpostiin." };
+  }
+
+  const client = createAuthClient();
+  if (!client) {
+    return { ok: false, message: "Supabase Authia ei ole konfiguroitu." };
+  }
+
+  const { error } = await client.auth.resetPasswordForEmail(normalizedEmail, { redirectTo });
+  if (error) {
+    console.error("JKP password reset request failed", error.message);
+  }
+
+  return { ok: true, message: "Jos käyttäjätili löytyy, palautuslinkki lähetetään sähköpostiin." };
+}
+
+export async function completeAdminPasswordRecovery(
+  accessToken: string,
+  refreshToken: string,
+  newPassword: string,
+) {
+  if (newPassword.length < 12) {
+    return { ok: false, message: "Uuden salasanan on oltava vähintään 12 merkkiä." };
+  }
+
+  const client = createAuthClient();
+  if (!client) return { ok: false, message: "Supabase Authia ei ole konfiguroitu." };
+
+  const { data: sessionData, error: sessionError } = await client.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+
+  if (sessionError || !sessionData.session || !sessionData.user) {
+    return { ok: false, message: "Palautuslinkki on virheellinen tai vanhentunut." };
+  }
+
+  if (!(await isAllowedAdmin(sessionData.user))) {
+    await client.auth.signOut();
+    return { ok: false, message: "Käyttäjällä ei ole JKP Hallinnan käyttöoikeutta." };
+  }
+
+  const { data, error } = await client.auth.updateUser({ password: newPassword });
+  if (error || !data.user) {
+    return { ok: false, message: "Salasanan palauttaminen epäonnistui." };
+  }
+
+  const { data: refreshed } = await client.auth.getSession();
+  if (refreshed.session) {
+    await saveSession(refreshed.session.access_token, refreshed.session.refresh_token);
+  }
+
+  return { ok: true, message: "Salasana vaihdettiin. Hallinta on nyt käytettävissä." };
+}
