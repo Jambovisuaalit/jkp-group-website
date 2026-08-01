@@ -1,19 +1,14 @@
 import { NextResponse } from "next/server";
-import { getAdminUser } from "@/lib/auth";
+import { getAdminContext } from "@/lib/auth";
 import { normalizeSubmission } from "@/lib/admin-records";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export async function GET() {
-  if (!(await getAdminUser())) {
+  const admin = await getAdminContext();
+  if (!admin) {
     return NextResponse.json({ message: "Ei käyttöoikeutta." }, { status: 401 });
   }
 
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json({ message: "Supabasea ei ole konfiguroitu." }, { status: 503 });
-  }
-
-  const { data, error } = await supabase
+  const { data, error } = await admin.client
     .from("jkp_form_submissions")
     .select("*")
     .order("created_at", { ascending: false })
