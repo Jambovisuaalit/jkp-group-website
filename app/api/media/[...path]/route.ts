@@ -1,3 +1,4 @@
+import { getAdminContext } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,9 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  const supabase = getSupabaseAdmin();
+  const serviceClient = getSupabaseAdmin();
+  const adminContext = serviceClient ? null : await getAdminContext();
+  const supabase = serviceClient || adminContext?.client || null;
   if (!supabase) {
     return new Response("Media unavailable", { status: 503 });
   }
