@@ -1,13 +1,13 @@
 import "server-only";
 
 import { defaultContent, type SiteContent } from "@/content/defaults";
-import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/admin";
+import {
+  getSupabaseAdmin,
+  isSupabaseBackendEnabled,
+  isSupabaseConfigured,
+} from "@/lib/supabase/admin";
 
 const CONTENT_KEY = "main";
-
-function usesSupabaseBackend(): boolean {
-  return process.env.DATA_BACKEND?.toLowerCase() === "supabase";
-}
 
 function mergeContent(base: SiteContent, incoming: Partial<SiteContent>): SiteContent {
   return {
@@ -24,7 +24,7 @@ function mergeContent(base: SiteContent, incoming: Partial<SiteContent>): SiteCo
 }
 
 export async function getSiteContent(): Promise<SiteContent> {
-  if (!usesSupabaseBackend()) return defaultContent;
+  if (!isSupabaseBackendEnabled()) return defaultContent;
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return defaultContent;
@@ -48,7 +48,7 @@ export async function getSiteContent(): Promise<SiteContent> {
 }
 
 export async function saveSiteContent(content: SiteContent): Promise<void> {
-  if (!usesSupabaseBackend()) {
+  if (!isSupabaseBackendEnabled()) {
     throw new Error("Sisältöä hallitaan tällä hetkellä GitHubin versionhallinnassa.");
   }
 
@@ -63,5 +63,5 @@ export async function saveSiteContent(content: SiteContent): Promise<void> {
 }
 
 export function isContentStorageConfigured(): boolean {
-  return usesSupabaseBackend() && isSupabaseConfigured();
+  return isSupabaseBackendEnabled() && isSupabaseConfigured();
 }
