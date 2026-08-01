@@ -1,26 +1,21 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
-import { getAdminUser } from "@/lib/auth";
+import { getAdminContext } from "@/lib/auth";
 import {
   normalizeRental,
   publicationColumns,
   slugify,
   stringArray,
 } from "@/lib/admin-records";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { AdminRental, PublicationState } from "@/types/admin";
 
 export async function GET() {
-  if (!(await getAdminUser())) {
+  const context = await getAdminContext();
+  if (!context) {
     return NextResponse.json({ message: "Ei käyttöoikeutta." }, { status: 401 });
   }
 
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json({ message: "Supabasea ei ole konfiguroitu." }, { status: 503 });
-  }
-
-  const { data, error } = await supabase
+  const { data, error } = await context.client
     .from("jkp_rental_properties")
     .select("*")
     .order("updated_at", { ascending: false });
@@ -33,13 +28,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!(await getAdminUser())) {
+  const context = await getAdminContext();
+  if (!context) {
     return NextResponse.json({ message: "Ei käyttöoikeutta." }, { status: 401 });
-  }
-
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json({ message: "Supabasea ei ole konfiguroitu." }, { status: 503 });
   }
 
   const body = (await request.json().catch(() => ({}))) as Partial<AdminRental>;
@@ -81,7 +72,7 @@ export async function POST(request: Request) {
     ...publicationColumns(state),
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await context.client
     .from("jkp_rental_properties")
     .insert(payload)
     .select("*")
