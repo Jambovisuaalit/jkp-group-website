@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
-import {
-  isSupabaseAuthConfigured,
-  isSupabaseBackendEnabled,
-} from "@/lib/supabase/admin";
+import { isSupabaseAuthConfigured } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = {
   title: "JKP Hallinta",
@@ -14,7 +11,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default function AdminPage() {
-  const enabled = isSupabaseBackendEnabled() && isSupabaseAuthConfigured();
+  const enabled = isSupabaseAuthConfigured();
 
   return (
     <>
