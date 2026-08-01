@@ -40,27 +40,27 @@ export const defaultContent: SiteContent = {
   company: {
     name: "JKP Group Oy",
     email: "jari.koskela@jkpgroup.fi",
-    phone: "",
+    phone: "+358 50 068 9855",
     area: "Jyväskylä ja Keski-Suomi",
   },
   hero: {
-    eyebrow: "Talotekniikan asiantuntija ja toimitilakumppani",
+    eyebrow: "Talotekniikka, kiinteistöt ja vuokraus vuodesta 1993",
     title: "Hankkeet hallintaan. Tilat tehokkaaseen käyttöön.",
     lead:
-      "JKP Group yhdistää kokeneen taloteknisen rakennuttamisen, valvonnan ja LVI-suunnittelun sekä joustavat liike- ja toimitilaratkaisut.",
+      "JKP Group Oy on jyväskyläläinen, omistajavetoinen asiantuntija- ja kiinteistöyhtiö. Talotekninen rakennuttaminen, valvonta ja LVI-suunnittelu yhdistyvät käytännönläheiseen kiinteistö- ja vuokrausosaamiseen.",
     imageUrl: "",
   },
   about: {
-    title: "Yksi kokenut vastuuhenkilö projektin alusta loppuun.",
+    title: "Pitkäjänteistä talotekniikan ja kiinteistöjen osaamista vuodesta 1993.",
     body:
-      "JKP Group Oy on vuonna 1993 perustettu jyväskyläläinen asiantuntijayritys. Toimintamalli on suoraviivainen: asiakas tietää aina, kuka vastaa kokonaisuudesta, päätöksenteosta ja työn etenemisestä.",
+      "JKP Group Oy:n toimintamalli on suora ja vastuullinen. Toimitusjohtaja Jari Koskela toimii asiakkaan yhteyshenkilönä ja vie kokonaisuuksia eteenpäin ilman tarpeettomia välikäsiä. Vuoden 2024 taloustiedot osoittavat vahvaa vakavaraisuutta ja kannattavuutta: omavaraisuusaste oli 84,2 % ja liikevoittoprosentti 40,2 %.",
   },
   businessAreas: [
     {
       slug: "talotekniikka",
       title: "Talotekniikan rakennuttaminen ja valvonta",
       summary:
-        "Rakennuttaminen, työmaavalvonta, LVI-suunnittelu ja kustannusten hallinta yhdeltä kokeneelta asiantuntijalta.",
+        "Rakennuttaminen, työmaavalvonta, LVI-suunnittelu ja kustannusten hallinta yhdeltä kokeneelta vastuuhenkilöltä.",
     },
     {
       slug: "vuokraus",
@@ -99,6 +99,6 @@ export const defaultContent: SiteContent = {
   contact: {
     title: "Kerro hankkeesta tai tilatarpeesta.",
     body:
-      "Lähetä lyhyt kuvaus tilanteesta. Saat suoran vastauksen ilman monimutkaista myyntiprosessia.",
+      "Ota suoraan yhteyttä Jari Koskelaan. Lähetä lyhyt kuvaus tilanteesta, niin saat vastauksen ilman monimutkaista myyntiprosessia.",
   },
 };
