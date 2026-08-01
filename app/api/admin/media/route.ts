@@ -53,10 +53,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Kuvan tallennus epäonnistui." }, { status: 502 });
     }
 
-    const { data: publicUrl } = supabase.storage.from(bucket).getPublicUrl(data.path);
+    const encodedPath = data.path.split("/").map(encodeURIComponent).join("/");
     return NextResponse.json({
       path: data.path,
-      url: publicUrl.publicUrl,
+      url: `/api/media/${encodedPath}`,
       bytes: optimized.byteLength,
       format: "webp",
     });
