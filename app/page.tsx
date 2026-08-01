@@ -57,9 +57,9 @@ export default async function HomePage() {
           <div className="shell section-heading">
             <div>
               <p className="eyebrow">Kaksi selkeää palvelupolkua</p>
-              <h2>Valitse asia, jonka haluat ratkaista.</h2>
+              <h2>Kaksi palvelualuetta. Yksi suora vastuu.</h2>
             </div>
-            <p>Tekninen hanke ja toimitilan tarve vaativat eri lähtötiedot. Siksi ne on erotettu omiksi, nopeasti ymmärrettäviksi kokonaisuuksiksi.</p>
+            <p>Talotekninen hanke ja tilatarve vaativat eri osaamista. Molemmissa eteneminen perustuu selkeään tilannekuvaan, suoraan yhteyteen ja päätöksiin ilman tarpeettomia välikäsiä.</p>
           </div>
           <div className="shell business-grid">
             {content.businessAreas.map((area, index) => (
@@ -90,7 +90,7 @@ export default async function HomePage() {
 
         <section className="section services-preview">
           <div className="shell section-heading">
-            <div><p className="eyebrow">Talotekniikka</p><h2>Tekninen laatu ilman hallinnollista sumua.</h2></div>
+            <div><p className="eyebrow">Talotekniikka</p><h2>Tekninen laatu. Hallittu toteutus.</h2></div>
           </div>
           <div className="shell service-grid">
             {content.services.map((service, index) => (
@@ -108,7 +108,7 @@ export default async function HomePage() {
             <div>
               <p className="eyebrow">Suora yhteys</p>
               <h2>{content.contact.title}</h2>
-              <p>{content.contact.body}</p>
+              <p>Ota suoraan yhteyttä Jari Koskelaan. Lyhyt kuvaus hankkeesta tai tilatarpeesta riittää ensimmäiseen arvioon.</p>
               <a className="contact-email" href={`mailto:${content.company.email}`}>{content.company.email}</a>
               {content.company.phone ? <a className="contact-email" href={`tel:${content.company.phone.replace(/\s/g, "")}`}>{content.company.phone}</a> : null}
             </div>
