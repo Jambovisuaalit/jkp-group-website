@@ -2,20 +2,16 @@ import "server-only";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const DEFAULT_SUPABASE_URL = "https://tpjkryxepyfbrldabacp.supabase.co";
-const DEFAULT_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Rzp4OcoggkrfTRzzvuT5QA_tnnymuhI";
-
 let adminClient: SupabaseClient | null | undefined;
 
 export function getSupabasePublicConfig() {
-  // JKP admin authentication must never inherit a generic Supabase Marketplace
-  // integration from another Vercel project. The public URL and publishable key
-  // are safe to ship and bind Auth explicitly to JKP's production project.
-  const url = process.env.JKP_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey =
-    process.env.NEXT_PUBLIC_JKP_SUPABASE_PUBLISHABLE_KEY ||
-    DEFAULT_SUPABASE_PUBLISHABLE_KEY;
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+  if (!url || !publishableKey) return null;
   return { url, publishableKey };
 }
 
@@ -58,11 +54,10 @@ export function isSupabaseConfigured(): boolean {
 }
 
 export function isSupabaseAuthConfigured(): boolean {
-  return Boolean(getSupabasePublicConfig());
+  return isSupabaseBackendEnabled() && Boolean(getSupabasePublicConfig());
 }
 
 export function isSupabaseBackendEnabled(): boolean {
   const mode = process.env.DATA_BACKEND?.trim().toLowerCase();
-  if (mode === "static") return false;
-  return isSupabaseConfigured();
+  return mode === "supabase" && isSupabaseConfigured();
 }

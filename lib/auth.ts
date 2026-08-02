@@ -2,7 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
-import { getSupabasePublicConfig } from "@/lib/supabase/admin";
+import { getSupabasePublicConfig, isSupabaseBackendEnabled } from "@/lib/supabase/admin";
 
 const ACCESS_COOKIE = "jkp_admin_access";
 const REFRESH_COOKIE = "jkp_admin_refresh";
@@ -10,6 +10,7 @@ const ACCESS_MAX_AGE = 60 * 60;
 const REFRESH_MAX_AGE = 60 * 60 * 24 * 30;
 
 function createAuthClient(): SupabaseClient | null {
+  if (!isSupabaseBackendEnabled()) return null;
   const config = getSupabasePublicConfig();
   if (!config) return null;
 

@@ -21,21 +21,26 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // This effect consumes Supabase's recovery fragment and immediately removes it from browser history.
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const access = params.get("access_token") || "";
     const refresh = params.get("refresh_token") || "";
     const errorDescription = params.get("error_description");
 
-    if (errorDescription) {
-      setMessage(decodeURIComponent(errorDescription));
-    } else if (!access || !refresh) {
-      setMessage("Palautuslinkki on virheellinen tai vanhentunut.");
-    } else {
-      setAccessToken(access);
-      setRefreshToken(refresh);
-      setReady(true);
-    }
+    window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
+
+    queueMicrotask(() => {
+      if (errorDescription) {
+        setMessage(decodeURIComponent(errorDescription));
+      } else if (!access || !refresh) {
+        setMessage("Palautuslinkki on virheellinen tai vanhentunut.");
+      } else {
+        setAccessToken(access);
+        setRefreshToken(refresh);
+        setReady(true);
+      }
+    });
   }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -58,7 +63,6 @@ export default function ResetPasswordPage() {
       setMessage(result.message || "Salasanan palautus käsiteltiin.");
       if (response.ok) {
         setSuccess(true);
-        window.history.replaceState({}, "", "/admin/reset-password");
       }
     } catch {
       setMessage("Salasanan palauttaminen epäonnistui.");

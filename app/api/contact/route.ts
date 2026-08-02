@@ -27,6 +27,21 @@ const labels: Record<string, string> = {
 
 type SubmissionKind = "contact" | "commercial" | "residential";
 
+const MAX_BODY_BYTES = 32_000;
+const ALLOWED_FIELDS = new Set([
+  "subject", "website", "startedAt", "name", "email", "phone", "company",
+  "businessId", "property", "message", "privacyConsent", "spaceType", "areaNeed",
+  "preferredLocation", "startDate", "occupants", "moveInDate", "rentalDuration",
+  "pets", "smoking",
+]);
+
+function hasValidShape(body: Record<string, unknown>): boolean {
+  return Object.entries(body).every(([key, value]) =>
+    ALLOWED_FIELDS.has(key) &&
+    (typeof value === "string" || typeof value === "number" || typeof value === "boolean"),
+  );
+}
+
 function resolveKind(subject: string): SubmissionKind {
   if (subject.includes("B2B-toimitilan")) return "commercial";
   if (subject.includes("Asuntovuokrauksen")) return "residential";
@@ -60,7 +75,15 @@ function buildEmailLines(body: Record<string, unknown>): string[] {
 
 export async function POST(request: Request) {
   try {
+    const contentLength = Number(request.headers.get("content-length") || 0);
+    if (contentLength > MAX_BODY_BYTES) {
+      return NextResponse.json({ message: "Lomakepyyntö on liian suuri." }, { status: 413 });
+    }
+
     const body = (await request.json()) as Record<string, unknown>;
+    if (!body || Array.isArray(body) || !hasValidShape(body) || JSON.stringify(body).length > MAX_BODY_BYTES) {
+      return NextResponse.json({ message: "Virheellinen lomakepyyntö." }, { status: 400 });
+    }
     const name = clean(body.name, 100);
     const email = clean(body.email, 180);
     const phone = clean(body.phone, 40);
@@ -70,18 +93,24 @@ export async function POST(request: Request) {
     const message = clean(body.message, 3000);
     const subject = clean(body.subject, 160) || "Yhteydenotto verkkosivulta";
     const website = clean(body.website, 100);
-    const privacyConsent = clean(body.privacyConsent, 40);
+    const privacyConsent = body.privacyConsent === true;
     const startedAt = Number(body.startedAt || 0);
     const kind = resolveKind(subject);
 
     if (website) return NextResponse.json({ message: "Lomakkeen lähetys epäonnistui." }, { status: 400 });
-    if (!name || !email || !message || !email.includes("@")) {
+    if (!name || !email || !message || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ message: "Täytä pakolliset yhteystiedot ja lisätiedot." }, { status: 400 });
     }
     if (kind !== "contact" && !phone) {
       return NextResponse.json({ message: "Puhelinnumero on pakollinen tässä lomakkeessa." }, { status: 400 });
     }
-    if (!privacyConsent) return NextResponse.json({ message: "Hyväksy tietojen käsittely ennen lähettämistä." }, { status: 400 });
+    if (kind === "commercial" && [body.company, body.spaceType, body.areaNeed, body.preferredLocation].some((value) => !clean(value, 160))) {
+      return NextResponse.json({ message: "Täytä kaikki toimitilakyselyn pakolliset tiedot." }, { status: 400 });
+    }
+    if (kind === "residential" && [body.property, body.occupants, body.moveInDate, body.rentalDuration, body.smoking].some((value) => !clean(String(value ?? ""), 180))) {
+      return NextResponse.json({ message: "Täytä kaikki vuokrahakemuksen pakolliset tiedot." }, { status: 400 });
+    }
+    if (privacyConsent !== true) return NextResponse.json({ message: "Hyväksy tietojen käsittely ennen lähettämistä." }, { status: 400 });
     if (!startedAt || Date.now() - startedAt < 1000) {
       return NextResponse.json({ message: "Lomake lähetettiin liian nopeasti." }, { status: 429 });
     }

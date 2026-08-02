@@ -7,25 +7,31 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck && npm run build",
     "bootstrap:admin": "node scripts/bootstrap-admin.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.110.9",
-    "next": "^16.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "server-only": "^0.0.1",
-    "sharp": "^0.34.4"
+    "@supabase/supabase-js": "2.111.0",
+    "next": "16.2.12",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "server-only": "0.0.1",
+    "sharp": "0.35.3"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "eslint": "^9.0.0",
-    "eslint-config-next": "^16.0.0",
-    "typescript": "^5.9.0"
+    "@types/node": "22.20.1",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.2.12",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "postcss": "8.5.25",
+    "sharp": "$sharp"
   },
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   }
 }
