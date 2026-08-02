@@ -19,7 +19,7 @@ type RentalFormProps = {
 function RentalForm({ subject, submitLabel, children }: RentalFormProps) {
   const [status, setStatus] = useState<FormStatus>("idle");
   const [message, setMessage] = useState("");
-  const startedAt = useRef(Date.now());
+  const startedAt = useRef(0);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,13 +33,18 @@ function RentalForm({ subject, submitLabel, children }: RentalFormProps) {
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, subject, startedAt: startedAt.current }),
+        body: JSON.stringify({
+          ...data,
+          privacyConsent: data.privacyConsent === "Hyväksytty",
+          subject,
+          startedAt: startedAt.current,
+        }),
       });
       const payload = (await response.json()) as ContactResponse;
       if (!response.ok) throw new Error(payload.message || "Lomakkeen lähetys epäonnistui.");
 
       form.reset();
-      startedAt.current = Date.now();
+      startedAt.current = 0;
       setStatus("success");
 
       if (payload.delivery === "mailto" && payload.mailtoUrl) {
@@ -56,7 +61,7 @@ function RentalForm({ subject, submitLabel, children }: RentalFormProps) {
   }
 
   return (
-    <form className="contact-form" onSubmit={submit}>
+    <form className="contact-form" onFocus={() => { if (!startedAt.current) startedAt.current = Date.now(); }} onSubmit={submit}>
       {children}
       <label className="honeypot" aria-hidden="true">
         Verkkosivu

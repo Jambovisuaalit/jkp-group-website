@@ -16,6 +16,8 @@ export function AdminEditor() {
     }
   }
 
+  // Legacy editor probes the existing session once when mounted.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, []);
 
   async function login(event: FormEvent<HTMLFormElement>) {
