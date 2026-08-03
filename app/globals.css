@@ -777,7 +777,7 @@ a.property-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-so
   .hero h1, .subhero h1 { font-size:44px; }
   .hero-lead, .subhero p { font-size:16px; }
   .proof-row strong { font-size:19px; }
-  .proof-row span { font-size:6.5px; }
+  .proof-row span { font-size:9px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
